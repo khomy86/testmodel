@@ -10,36 +10,97 @@ DOWNLOAD_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"
 HOST="0.0.0.0"
 PORT="8000"
 CONTEXT_SIZE="4096"
-GPU_LAYERS="-1"
+GPU_LAYERS="-1"  # -1 means use all available GPU layers
 
-# --- Script Logic ---
+# --- Environment Setup ---
+echo "--- Setting up environment ---"
 
-# Check if model exists, if not, download it
+# Update system packages
+apt-get update && apt-get install -y \
+    wget \
+    curl \
+    aria2 \
+    build-essential \
+    cmake \
+    nvidia-cuda-toolkit \
+    python3-dev \
+    python3-pip
+
+# Set CUDA environment variables
+export CUDA_HOME=/usr/local/cuda
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
+# --- Model Download ---
 if [ ! -f "$MODEL_FILE" ]; then
     echo "--- Model not found. Downloading ${MODEL_FILE} with aria2c... ---"
-    apt-get update && apt-get install -y aria2
     aria2c -c -x 16 -s 16 -k 1M "$DOWNLOAD_URL" -o "$MODEL_FILE"
     echo "--- Model download complete. ---"
 else
     echo "--- Model ${MODEL_FILE} already exists. Skipping download. ---"
 fi
 
-# Install/update dependencies, forcing re-compilation to ensure GPU support
+# --- Python Dependencies ---
 echo "--- Installing/updating Python dependencies..."
-export CMAKE_ARGS="-DGGML_CUDA=on"
+
+# Create requirements.txt if it doesn't exist
+if [ ! -f "requirements.txt" ]; then
+    echo "--- Creating requirements.txt ---"
+    cat > requirements.txt << EOF
+llama-cpp-python[server]
+numpy
+fastapi
+uvicorn
+pydantic
+typing-extensions
+sse-starlette
+starlette-context
+EOF
+fi
+
+# Set compilation flags for CUDA support
+export CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=all"
 export FORCE_CMAKE=1
+export CUDACXX=/usr/local/cuda/bin/nvcc
+
+# Install with CUDA support
+pip install --upgrade pip setuptools wheel
+pip install --upgrade --force-reinstall --no-cache-dir llama-cpp-python[server] --extra-index-url https://download.pytorch.org/whl/cu118
+
+# Install other requirements
 pip install --upgrade --force-reinstall --no-cache-dir -r requirements.txt
 
-# Start the server
+# --- Verify GPU Access ---
+echo "--- Checking GPU availability ---"
+nvidia-smi || echo "Warning: nvidia-smi not available"
+python3 -c "
+import subprocess
+try:
+    result = subprocess.run(['nvidia-smi'], capture_output=True, text=True)
+    if result.returncode == 0:
+        print('GPU detected successfully')
+    else:
+        print('GPU detection failed')
+except:
+    print('nvidia-smi command failed')
+"
+
+# --- Start Server ---
 echo "--- Starting OpenAI compatible server..."
+echo "Model: $MODEL_FILE"
+echo "Host: $HOST"
+echo "Port: $PORT"
+echo "Context Size: $CONTEXT_SIZE"
+echo "GPU Layers: $GPU_LAYERS"
+
 python3 -m llama_cpp.server \
-  --model "./${MODEL_FILE}" \
-  --host "$HOST" \
-  --port "$PORT" \
-  --n_ctx "$CONTEXT_SIZE" \
-  --n_gpu_layers "$GPU_LAYERS" \
-  --tensor_split 1 \
-  --no_mmap \
-  --verbose "true"
+    --model "./${MODEL_FILE}" \
+    --host "$HOST" \
+    --port "$PORT" \
+    --n_ctx "$CONTEXT_SIZE" \
+    --n_gpu_layers "$GPU_LAYERS" \
+    --verbose \
+    --interrupt_requests \
+    --disable_ping_events
 
 echo "--- Server started successfully. ---"
