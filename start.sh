@@ -58,14 +58,24 @@ starlette-context
 EOF
 fi
 
+# Detect GPU architecture
+echo "--- Detecting GPU architecture ---"
+GPU_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader,nounits | head -1 | tr -d '.')
+if [ -z "$GPU_ARCH" ]; then
+    echo "Warning: Could not detect GPU architecture, using common architectures"
+    GPU_ARCH="75;80;86;89;90"
+else
+    echo "Detected GPU compute capability: $GPU_ARCH"
+fi
+
 # Set compilation flags for CUDA support
-export CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=all"
+export CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=${GPU_ARCH}"
 export FORCE_CMAKE=1
 export CUDACXX=/usr/local/cuda/bin/nvcc
 
 # Install with CUDA support
 pip install --upgrade pip setuptools wheel
-pip install --upgrade --force-reinstall --no-cache-dir llama-cpp-python[server] --extra-index-url https://download.pytorch.org/whl/cu118
+CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=${GPU_ARCH}" pip install --upgrade --force-reinstall --no-cache-dir llama-cpp-python[server]
 
 # Install other requirements
 pip install --upgrade --force-reinstall --no-cache-dir -r requirements.txt
