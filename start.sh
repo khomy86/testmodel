@@ -26,7 +26,7 @@ fi
 
 # Install/update dependencies, forcing re-compilation to ensure GPU support
 echo "--- Installing/updating Python dependencies..."
-export CMAKE_ARGS="-DLLAMA_CUBLAS=on"
+export CMAKE_ARGS="-DGGML_CUDA=on"
 export FORCE_CMAKE=1
 pip install --upgrade --force-reinstall --no-cache-dir -r requirements.txt
 

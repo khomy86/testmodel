@@ -9,7 +9,7 @@ The server provides an OpenAI-compatible API.
 1.  **Navigate to Secure Cloud:** Log in to your RunPod account and go to the `Secure Cloud` dashboard.
 2.  **Select a GPU Pod:** Choose a GPU pod with **1x NVIDIA H100 SXM 80GB**. This is a top-tier GPU and is crucial for loading the entire model onto the VRAM for the best performance.
 3.  **Choose Template:** Set the template to **RunPod Pytorch 2.8.0**.
-4.  **Set Disk Space:** Allocate at least **50 GB** for the Container Disk and **10 GB** for the Workspace Disk.
+4.  **Set Disk Space:** Allocate at least **40 GB** for the Container Disk and **50 GB** for the Volume Disk. The large model file will be stored on the persistent Volume Disk.
 5.  **Deploy:** Click `Deploy` and wait for the pod to become active.
 
 ## Deployment Steps
