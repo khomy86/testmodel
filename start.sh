@@ -17,11 +17,11 @@ GPU_LAYERS="-1"
 
 # Check if model exists, if not, download it
 if [ ! -f "$MODEL_FILE" ]; then
-    echo "--- Model not found. Downloading ${MODEL_FILE}..."    
-    wget -q --show-progress -O "$MODEL_FILE" "$DOWNLOAD_URL"
-    echo "--- Model download complete. ---"
+    echo "--- Model not found. Downloading ${MODEL_FILE} with aria2c... "
+    aria2c -c -x 16 -s 16 -k 1M "$DOWNLOAD_URL" -o "$MODEL_FILE"
+    echo "--- Model download complete. "
 else
-    echo "--- Model ${MODEL_FILE} already exists. Skipping download. ---"
+    echo "--- Model ${MODEL_FILE} already exists. Skipping download. "
 fi
 
 # Install/update dependencies, forcing re-compilation to ensure GPU support
@@ -40,4 +40,4 @@ python3 -m llama_cpp.server \
   --n_gpu_layers "$GPU_LAYERS" \
   --verbose "false"
 
-echo "--- Server started successfully. ---"
+echo "--- Server started successfully. "
