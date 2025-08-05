@@ -109,8 +109,6 @@ python3 -m llama_cpp.server \
     --port "$PORT" \
     --n_ctx "$CONTEXT_SIZE" \
     --n_gpu_layers "$GPU_LAYERS" \
-    --verbose \
-    --interrupt_requests \
-    --disable_ping_events
+    --verbose true
 
 echo "--- Server started successfully. ---"
