@@ -10,18 +10,18 @@ DOWNLOAD_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"
 HOST="0.0.0.0"
 PORT="8000"
 CONTEXT_SIZE="4096"
-# -1 offloads all possible layers to the GPU(s). It will automatically balance across all available GPUs.
 GPU_LAYERS="-1"
 
 # --- Script Logic ---
 
 # Check if model exists, if not, download it
 if [ ! -f "$MODEL_FILE" ]; then
-    echo "--- Model not found. Downloading ${MODEL_FILE} with aria2c... "
+    echo "--- Model not found. Downloading ${MODEL_FILE} with aria2c... ---"
+    apt-get update && apt-get install -y aria2
     aria2c -c -x 16 -s 16 -k 1M "$DOWNLOAD_URL" -o "$MODEL_FILE"
-    echo "--- Model download complete. "
+    echo "--- Model download complete. ---"
 else
-    echo "--- Model ${MODEL_FILE} already exists. Skipping download. "
+    echo "--- Model ${MODEL_FILE} already exists. Skipping download. ---"
 fi
 
 # Install/update dependencies, forcing re-compilation to ensure GPU support
@@ -38,6 +38,8 @@ python3 -m llama_cpp.server \
   --port "$PORT" \
   --n_ctx "$CONTEXT_SIZE" \
   --n_gpu_layers "$GPU_LAYERS" \
-  --verbose "false"
+  --tensor_split '[1]' \
+  --no_mmap \
+  --verbose "true"
 
-echo "--- Server started successfully. "
+echo "--- Server started successfully. ---"
