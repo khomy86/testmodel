@@ -38,7 +38,7 @@ python3 -m llama_cpp.server \
   --port "$PORT" \
   --n_ctx "$CONTEXT_SIZE" \
   --n_gpu_layers "$GPU_LAYERS" \
-  --tensor_split '[1]' \
+  --tensor_split 1 \
   --no_mmap \
   --verbose "true"
 
